@@ -8,6 +8,8 @@ export const MAX_VALUE = 1e6; // poids et « Sur » : au-delà, les calculs perd
 
 // Nombre fini strictement positif et pas démesuré.
 export const sane = (x) => Number.isFinite(x) && x > 0 && x <= MAX_VALUE;
+// Poids d'une épreuve : 0 est permis (épreuve à 0 %, qui ne compte pas dans la moyenne).
+export const saneWeight = (x) => Number.isFinite(x) && x >= 0 && x <= MAX_VALUE;
 
 // Tous les identifiants déjà pris dans une configuration (épreuves, saisies d'une moyenne, 2e chance).
 const idsOf = (g) => new Set([...(g?.items || []).flatMap((it) => [it.id, ...(it.parts || []).map((p) => p.id)]), g?.second?.id].filter(Boolean));
@@ -40,7 +42,7 @@ export function upsertEpreuve(g, { id, label, weight, max, second }) {
   label = String(label ?? "").trim().slice(0, MAX_LABEL);
   weight = Number(weight); max = Number(max);
   if (!label) throw new Error("Donne un nom à l'épreuve");
-  if (!sane(weight)) throw new Error("Indique le poids de l'épreuve, en % (entre 0 et 1 000 000)");
+  if (!saneWeight(weight)) throw new Error("Indique le poids de l'épreuve, en % (entre 0 et 1 000 000)");
   if (!sane(max)) throw new Error("Indique la note maximale de l'épreuve (le « Sur »)");
 
   const items = [...(g?.items || [])];

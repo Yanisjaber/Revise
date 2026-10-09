@@ -51,7 +51,7 @@ export function ccFieldsHtml(v) {
   return `<div class="grid g2">
       <div class="field"><label>Épreuve du calculateur</label><select name="epreuve">${epreuveOptions(v.matiere, v.epreuve, v.id)}</select></div>
       <div class="field"><label>Titre</label><input type="text" name="titre" required maxlength="80" value="${esc(v.titre)}" placeholder="ex. CC1 — QCM"></div>
-      <div class="field"><label>Poids (% de la note)</label><input type="number" name="poids" required min="0.01" step="any" value="${esc(v.poids)}" placeholder="ex. 20"></div>
+      <div class="field"><label>Poids (% de la note)</label><input type="number" name="poids" required min="0" step="any" value="${esc(v.poids)}" placeholder="ex. 20"></div>
       <div class="field"><label>Noté sur</label><input type="number" name="max" required min="1" step="any" value="${esc(v.max)}"></div>
       <div class="field"><label>Type</label><select name="type"><option value="CC" ${v.type !== "2e" ? "selected" : ""}>Normal</option><option value="2e" ${v.type === "2e" ? "selected" : ""}>2e chance</option></select></div>
     </div>

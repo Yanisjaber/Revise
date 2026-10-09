@@ -3,7 +3,7 @@
 import { $, $$, esc } from "../../core/utils/dom.js";
 import { fmt1 } from "../../core/utils/format.js";
 import { secondAt, shareText } from "./grades.js";
-import { MAX_LABEL, newEpreuveId, sane } from "./grading.utils.js";
+import { MAX_LABEL, newEpreuveId, sane, saneWeight } from "./grading.utils.js";
 
 const MAX_ROWS = 30;      // épreuves par matière
 const MAX_PARTS = 8;      // saisies dont on fait la moyenne pour une épreuve
@@ -65,7 +65,7 @@ export function bindGradingEditor(form) {
       const isSec = !!sec && !secUsed && $(".gr-sec", r).checked;
       secUsed ||= isSec;
       const it = isSec ? sec : g.items[next++];
-      return `<div class="gr-line"><span>${esc(it.label)}</span><b>${shareText(isSec && !sec.required ? null : Math.round((it.weight / w) * 1000) / 10)}</b></div>`;
+      return `<div class="gr-line"><span>${esc(it.label)}</span><b>${shareText(isSec && !sec.required ? null : Math.round((it.weight / (w || 1)) * 1000) / 10)}</b></div>`;
     });
     if (sec) rows.push(`<div class="tiny muted" style="padding-top:8px">La 2e chance remplace une note plus faible, si elle est meilleure.</div>`);
     sum.innerHTML = rows.join("");
@@ -198,7 +198,7 @@ export function readGradingEditor(form) {
       if (max !== 20) second.max = max;
       continue;
     }
-    if (!sane(weight)) throw new Error(`Poids manquant ou invalide pour « ${label} »`);
+    if (!saneWeight(weight)) throw new Error(`Poids manquant ou invalide pour « ${label} »`);
     const id = idOf(orig, "e");
     const it = { id, label, weight };
     if (max !== 20) it.max = max;
