@@ -64,7 +64,7 @@ export function edt() {
   const cols = byDay.map(dayCol).join("");
   const axisLabels = hours.map((h) => `<span style="top:${((h - dayStart) / (dayEnd - dayStart)) * 100}%">${h} h</span>`).join("");
 
-  const wkEv = timedAll;
+  const wkEv = timedAll.filter((e) => !e.cancelled); // un cours annulé ne compte ni en créneau ni en heures
   const hrs = wkEv.reduce((a, e) => a + (toMin(e.e) - toMin(e.s)) / 60, 0);
 
   return {

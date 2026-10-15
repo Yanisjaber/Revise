@@ -39,7 +39,7 @@ export function ccPrepPage(ccId) {
     // Durée réelle du cours (créneau EDT lié à cette séance, s'il y en a un — plusieurs possibles
     // si le cours a été redécoupé) ; 90 min de repli (créneau CM/TD/TP standard) sinon, pour que
     // l'objectif de révision reste calculable même sur une séance créée à la main sans EDT.
-    const edtMin = D.edt.events.filter((e) => e.sid === s.id && e.m === mid).reduce((a, e) => a + Math.max(0, toMin(e.e) - toMin(e.s)), 0);
+    const edtMin = D.edt.events.filter((e) => e.sid === s.id && e.m === mid && !e.cancelled).reduce((a, e) => a + Math.max(0, toMin(e.e) - toMin(e.s)), 0);
     const courseMin = edtMin || 90;
     return { s, total: qs.length + exs.length + fs.length, remQ, remE, remF, remN: remQ.length + remE.length + remF.length, remMin, courseMin };
   });

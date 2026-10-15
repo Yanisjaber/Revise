@@ -20,7 +20,7 @@ export const edtMeta = (e) => [e.r, e.p, e.g].filter(Boolean).map(esc).join(" ·
 
 export const edtMetaRaw = (e) => [e.r, e.p, e.g].filter(Boolean).join(" · ");
 
-export const edtState = (e, now) => (e.e ? (pd(e.d, e.e) <= now ? "past" : pd(e.d, e.s) <= now ? "live" : "") : "");
+export const edtState = (e, now) => (e.cancelled ? "cancelled" : e.e ? (pd(e.d, e.e) <= now ? "past" : pd(e.d, e.s) <= now ? "live" : "") : "");
 
 // Une séance peut exister en base (créée vide dès le premier clic sur "Rédiger ce cours", via
 // edtDraft — voir plus bas) sans qu'aucun cours y ait jamais été rédigé : le seul fait qu'une ligne

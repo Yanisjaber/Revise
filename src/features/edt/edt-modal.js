@@ -19,7 +19,7 @@ const ccOfSlot = (slot) => (slot.id && D.cal.evenements.find((x) => x.edtId === 
 // crayon sur une carte de la grille) — remplace l'ancien sélecteur "changer le type" isolé.
 function edtEventForm(e) {
   const isNew = !e;
-  const v = e || { id: "", d: todayKey(), s: "08:00", e: "10:00", t: edtDefaultType(), m: "", r: "", p: "", g: "", n: "", cc: false, allday: false };
+  const v = e || { id: "", d: todayKey(), s: "08:00", e: "10:00", t: edtDefaultType(), m: "", r: "", p: "", g: "", n: "", cc: false, allday: false, cancelled: false };
   const linked = ccOfSlot(v);
   // Le CC de ce créneau : ses champs (épreuve, titre, poids, « Sur », type) viennent de l'échéance reliée, sinon du créneau.
   const ccVals = ccFormValues(linked, { matiere: v.m || matiereFromCCLabel(v.n)?.id || "", date: v.d, titre: v.n || "", edtId: v.id });
@@ -36,6 +36,7 @@ function edtEventForm(e) {
       <div class="field"><label>Salle</label><input type="text" name="r" value="${esc(v.r || "")}" placeholder="ex. B204"></div>
       <div class="field"><label>Groupe</label><input type="text" name="g" value="${esc(v.g || "")}" placeholder="ex. TD2"></div>
     </div>
+    <label class="row small" style="gap:6px;margin-top:10px"><input type="checkbox" name="cancelled" ${v.cancelled ? "checked" : ""}> Cours annulé <span class="tiny muted">(reste affiché, barré, et ne compte plus)</span></label>
     <label class="row small" style="gap:6px;margin-top:10px"><input type="checkbox" name="cc" ${v.cc ? "checked" : ""}> Contrôle continu pendant ce créneau</label>
     <div id="edtCC" ${v.cc ? "" : "hidden"} style="margin-top:10px">${ccFieldsHtml(ccVals)}</div>
     <div class="field" style="margin-top:10px"><label>Note</label><input type="text" name="n" value="${esc(v.n || "")}" placeholder="intitulé affiché sous le créneau, ou détails du CC"></div>
@@ -82,7 +83,7 @@ export function openEdtModal(e) {
         if (!m) throw new Error("Choisis la matière du CC");
         if (before?.epreuve && before.matiere !== m) throw new Error(`Ce créneau est relié au CC « ${before.titre} » d'une autre matière : change d'abord ce CC dans le calendrier.`);
       }
-      const id = await saveEdtEvent({ id: fd.get("id") || undefined, d, s: fd.get("s"), e: fd.get("e"), t: fd.get("t"), m, sid: e?.sid, r: fd.get("r"), p: fd.get("p"), g: fd.get("g"), n: fd.get("n"), cc: wantCC, allday: fd.get("allday") === "on" });
+      const id = await saveEdtEvent({ id: fd.get("id") || undefined, d, s: fd.get("s"), e: fd.get("e"), t: fd.get("t"), m, sid: e?.sid, r: fd.get("r"), p: fd.get("p"), g: fd.get("g"), n: fd.get("n"), cc: wantCC, allday: fd.get("allday") === "on", cancelled: fd.get("cancelled") === "on" });
       f.elements.id.value = id; // si la suite échoue, un nouvel envoi met à jour ce créneau au lieu d'en créer un autre
       if (wantCC) {
         // Le CC est créé ou mis à jour avec son épreuve du calculateur, relié à ce créneau.
