@@ -1,5 +1,6 @@
 import { sync } from "../../core/services/store.js";
 import { client } from "../../core/services/supabase.client.js";
+import { deleteSeanceDoc } from "../documents/documents.service.js";
 
 export async function loadSeances(mid) {
   if (!sync.client || !sync.user) return [];
@@ -17,7 +18,12 @@ export async function saveSeance(mid, s) {
 }
 
 export async function deleteSeance(mid, id) {
-  // Détache d'abord les sujets (QCM/cartes/exercices) et les créneaux d'EDT qui pointaient sur
+  // Les documents déposés sur la séance (fichier + ligne seance_docs) sont supprimés avec elle :
+  // la clé étrangère seance_docs_sid_fkey bloquait sinon la suppression d'une séance qui en avait.
+  const { data: docs, error: e00 } = await client().from("seance_docs").select("id,path").eq("mid", mid).eq("sid", id);
+  if (e00) throw e00;
+  for (const d of docs) await deleteSeanceDoc(d);
+  // Détache ensuite les sujets (QCM/cartes/exercices) et les créneaux d'EDT qui pointaient sur
   // cette séance (pas supprimés).
   const { error: e0 } = await client().from("sujets").update({ sid: null }).eq("mid", mid).eq("sid", id);
   if (e0) throw e0;
