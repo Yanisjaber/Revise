@@ -29,15 +29,23 @@ export async function removeFile(ref) {
   if (error) console.warn("removeFile", error);
 }
 
+const IMG = /\.(png|jpe?g|gif|webp|svg|avif)$/i;
+
 // Signe un lot de références -> { ref: url }. En cas d'échec, renvoie ce qui a pu l'être.
 export async function signRefs(refs) {
   const out = {};
   if (!sync.client || !sync.user || !refs.length) return out;
   for (let i = 0; i < refs.length; i += 100) {
     const part = refs.slice(i, i + 100);
-    const { data, error } = await sync.client.storage.from(BUCKET).createSignedUrls(part.map(pathOf), URL_TTL);
-    if (error) { console.warn("signRefs", error); continue; }
-    data.forEach((s, k) => { if (s.signedUrl) out[part[k]] = s.signedUrl; });
+    // Images : URL normale (affichées dans la page). Autres fichiers (PDF…) : URL « à télécharger » —
+    // le fichier est sur un autre domaine que le site, donc l'attribut HTML `download` est ignoré par le
+    // navigateur ; c'est Supabase qui doit répondre avec « Content-Disposition: attachment ».
+    for (const [list, opts] of [[part.filter((r) => IMG.test(r)), undefined], [part.filter((r) => !IMG.test(r)), { download: true }]]) {
+      if (!list.length) continue;
+      const { data, error } = await sync.client.storage.from(BUCKET).createSignedUrls(list.map(pathOf), URL_TTL, opts);
+      if (error) { console.warn("signRefs", error); continue; }
+      data.forEach((s, k) => { if (s.signedUrl) out[list[k]] = s.signedUrl; });
+    }
   }
   return out;
 }

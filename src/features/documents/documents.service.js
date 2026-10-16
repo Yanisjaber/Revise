@@ -19,12 +19,13 @@ export async function loadSeanceDocs(mid, sid) {
   if (!sync.client || !sync.user) return [];
   const { data, error } = await sync.client.from("seance_docs").select("*").eq("mid", mid).eq("sid", sid).order("created_at", { ascending: true });
   if (error) { console.warn("loadSeanceDocs", error); return []; }
-  const paths = data.map((r) => r.path);
-  let urls = {};
-  if (paths.length) {
-    const { data: signed, error: e2 } = await sync.client.storage.from("docs").createSignedUrls(paths, DOC_URL_TTL);
-    if (!e2) signed.forEach((s, i) => { urls[paths[i]] = s.signedUrl; });
-  }
+  // URL signée « à télécharger » avec le vrai nom du fichier : le fichier est sur un autre domaine que le
+  // site, donc l'attribut HTML `download` serait ignoré et le PDF s'ouvrirait dans l'onglet.
+  const urls = {};
+  await Promise.all(data.map(async (r) => {
+    const { data: s, error: e2 } = await sync.client.storage.from("docs").createSignedUrl(r.path, DOC_URL_TTL, { download: r.nom || true });
+    if (!e2 && s) urls[r.path] = s.signedUrl;
+  }));
   return data.map((r) => ({ id: r.id, mid: r.mid, sid: r.sid, nom: r.nom, path: r.path, taille: r.taille, type: r.type, url: urls[r.path] || null, strokes: r.strokes || null, paper: r.paper || null }));
 }
 
