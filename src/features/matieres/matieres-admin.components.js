@@ -7,6 +7,7 @@ import { plural } from "../../core/utils/format.js";
 import { fileFieldHtml } from "../files/files.components.js";
 import { readFileField, removeFile } from "../files/files.service.js";
 import { bindGradingEditor, gradingEditorHtml, readGradingEditor } from "../notes/grading-editor.js";
+import { dropCCOfRemovedEpreuves } from "../calendar/cc.service.js";
 import { saveMatiere, savePeriode } from "./matieres.service.js";
 import { refreshShell } from "../../routing/navigation.js";
 
@@ -67,6 +68,7 @@ export function bindMM(el) {
       // et que rien n'est configuré, on n'envoie rien (sinon la base refuserait l'enregistrement).
       if (grading !== undefined && (grading !== null || D.matieres.some((x) => x.grading !== undefined))) payload.grading = grading;
       await saveMatiere(payload);
+      if (payload.grading !== undefined) await dropCCOfRemovedEpreuves(id, payload.grading);
       await removeFile(pdfCC.old);
       toast("Matière enregistrée");
       await loadData(); refreshShell();

@@ -12,9 +12,9 @@ const tone = (val, max) => (val === "" ? "" : (+val / max) * 20 >= SET().passMar
 // Un segment par épreuve : sa largeur suit son coef, son nom est écrit tel quel, puis la note, puis le coef.
 function segHtml(mid, [k, label, mx], share, v, epreuve) {
   const max = mx || 20, val = v[k] ?? "";
-  // Date de l'échéance reliée à cette épreuve ; sinon un bouton pour lui en donner une (le formulaire s'ouvre avec l'épreuve choisie).
+  // Date de l'échéance reliée à cette épreuve : elle vient du créneau d'EDT où on a placé le CC (pas de date = pas encore placé).
   const ev = D.cal.evenements.find((x) => x.matiere === mid && x.epreuve === epreuve);
-  const date = ev ? `<a class="nt-date" href="#/cal" title="Voir dans le calendrier">${esc(fmtDate(ev.date))}</a>` : `<button type="button" class="nt-date" data-a="addccdate" data-m="${esc(mid)}" data-e="${esc(epreuve)}">+ Date</button>`;
+  const date = ev ? `<a class="nt-date" href="#/cal" title="Voir dans le calendrier">${esc(fmtDate(ev.date))}</a>` : `<a class="nt-date" href="#/edt" title="Pour donner une date : ouvre un créneau de l'emploi du temps, coche Contrôle continu et choisis cette épreuve">Sans date</a>`;
   return `<label class="nt-seg ${tone(val, max)}" style="flex:${Math.max(share || 6, 6)} 1 0"><small>${esc(label)}</small><input type="number" inputmode="decimal" min="0" max="${max}" step="0.05" data-k="${k}" value="${esc(val)}" placeholder="—" aria-label="${esc(label)}"><em>${share === undefined ? "" : shareText(share)}</em>${date}</label>`;
 }
 

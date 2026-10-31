@@ -25,7 +25,7 @@ export function edtCard(e, now, top, height, left, width, px) {
     <${tag} class="edt-ev ${e.cc ? "hascc " : ""}${st}${href ? " clickable" : ""}" style="--c:${edtColor(e)}" title="${tt}"${href ? ` href="${href}"` : ""}>
       <div class="edt-h"><b>${e.s}${micro ? "" : "–" + e.e}</b>${!micro ? `<span class="chip gr">${esc(e.t)}</span>` : ""}${!micro && e.cancelled ? '<span class="chip ko">Annulé</span>' : ""}${!micro && e.cc && !e.cancelled ? '<span class="chip wa">CC</span>' : ""}${!micro && st === "live" ? '<span class="chip ok">en cours</span>' : ""}</div>
       ${!micro ? `<div class="edt-t">${esc(edtName(e))}</div>` : ""}
-      ${!compact && edtMeta(e) ? `<div class="tiny muted">${edtMeta(e)}</div>` : ""}${!compact && e.n ? `<div class="tiny edt-n">${esc(e.n)}</div>` : ""}
+      ${!compact && edtMeta(e) ? `<div class="tiny muted">${edtMeta(e)}</div>` : ""}${!compact && e.n ? `<div class="tiny edt-n${e.cc ? "" : " plain"}">${esc(e.n)}</div>` : ""}
       ${!compact ? status : ""}</${tag}>
     <button type="button" class="edt-editbtn" data-a="edtedit" data-id="${esc(e.id)}" aria-label="Modifier ce créneau" title="Modifier">${icon("edit")}</button>
   </div>`;

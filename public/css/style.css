@@ -408,6 +408,7 @@ span.flatpickr-weekday{color:var(--muted);font-weight:600;font-size:.74rem;text-
 .edt-h{display:flex;gap:4px;align-items:center;flex-wrap:wrap;font-size:.76rem}
 .edt-t{font-weight:700;margin:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .edt-n{color:var(--amber);margin-top:1px}
+.edt-n.plain{color:var(--muted)}
 .edt-link{display:inline-flex;align-items:center;gap:3px;margin-top:3px;font-size:.72rem;font-weight:700;color:var(--c)}
 .edt-link .ico{width:11px;height:11px}
 .edt-now{position:absolute;left:-1px;right:0;height:0;border-top:2px solid var(--ko);z-index:2;pointer-events:none}

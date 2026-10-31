@@ -1,4 +1,6 @@
-import { clearEdt, saveEdtEvents } from "./edt.service.js";
+import { D } from "../../core/services/app-data.js";
+import { saveCCEvent } from "../calendar/cc.service.js";
+import { clearEdt, loadEdt, saveEdtEvents } from "./edt.service.js";
 import { saveMatiere } from "../matieres/matieres.service.js";
 import { edtDefaultType, edtIsOff, edtToSeanceType, icsCcRule, icsTypeRules } from "../settings/settings.js";
 
@@ -184,7 +186,17 @@ export async function commitIcsImport(analysis, currentMatieres) {
     created++;
   }
   const rows = analysis.events.map((e) => ({ d: e.d, s: e.s, e: e.e, t: e.t, m: e.titre ? titreToMid.get(e.titre) : null, r: e.r, p: e.p, g: e.g, n: e.n, cc: e.cc, allday: e.allday }));
+  // Supprimer les créneaux détache leurs CC (ils perdent leur date) : on note où chacun était posé pour le reposer
+  // sur le nouveau créneau de même matière, même jour et même heure.
+  const placed = D.cal.evenements.filter((ev) => ev.edtId).map((ev) => ({ ev, slot: D.edt.events.find((x) => x.id === ev.edtId) })).filter((x) => x.slot);
   await clearEdt();
   await saveEdtEvents(rows);
+  if (placed.length) {
+    const fresh = (await loadEdt()).events;
+    for (const { ev, slot } of placed) {
+      const again = fresh.find((x) => x.cc && x.m === slot.m && x.d === slot.d && x.s === slot.s);
+      if (again) await saveCCEvent({ ...ev, date: again.d, edtId: again.id });
+    }
+  }
   return { matieresCreees: created, evenements: rows.length };
 }

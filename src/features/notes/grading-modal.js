@@ -5,6 +5,7 @@ import { loadData } from "../../core/services/data-loader.js";
 import { $, $$, esc } from "../../core/utils/dom.js";
 import { rerenderKeep } from "../../routing/navigation.js";
 import { routerState } from "../../routing/router.store.js";
+import { dropCCOfRemovedEpreuves } from "../calendar/cc.service.js";
 import { saveMatiere } from "../matieres/matieres.service.js";
 import { bindGradingEditor, gradingEditorHtml, readGradingEditor } from "./grading-editor.js";
 
@@ -42,6 +43,7 @@ export function openGradingModal(mid) {
     submit.disabled = true;
     try {
       await saveMatiere({ ...cur, grading });
+      await dropCCOfRemovedEpreuves(mid, grading); // une épreuve retirée emporte son CC (et son créneau d'EDT n'est plus marqué CC)
       toast("Calculateur enregistré");
       closeGradingModal();
       await loadData(); rerenderKeep();

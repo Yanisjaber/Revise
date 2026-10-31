@@ -31,7 +31,7 @@ export async function cours(mid, sid) {
   const ccEvt = D.edt.events.find((x) => x.cc && x.m === mid && seanceFor(x)?.id === sid);
   const ccDeadline = D.cal.evenements.find((x) => x.edtId === ccEvt?.id) || D.cal.evenements.find((x) => x.matiere === mid && x.date === s.date);
   const ccBanner = ccEvt ? `<div class="card" style="margin:12px 0;border-left:4px solid var(--amber)">
-    <div class="row nowrap"><span class="chip wa">CC</span><b>Contrôle continu pendant ce cours</b><div class="sp"></div>${ccDeadline ? `<a class="btn sm ghost" href="#/cal">${icon("cal")}Voir dans Notes &amp; CC</a>` : `<button type="button" class="btn sm ghost" data-a="addccsugg" data-m="${esc(mid)}" data-date="${s.date}" data-titre="${esc(ccEvt.n || "CC")}" data-edt-id="${esc(ccEvt.id)}">${icon("check")}Ajouter à mes échéances</button>`}</div>
+    <div class="row nowrap"><span class="chip wa">CC</span><b>Contrôle continu pendant ce cours</b><div class="sp"></div>${ccDeadline ? `<a class="btn sm ghost" href="#/cal">${icon("cal")}Voir dans Notes &amp; CC</a>` : `<a class="btn sm ghost" href="#/notes">${icon("flag")}Épreuves dans Notes &amp; CC</a>`}</div>
     <div class="field" style="margin-top:10px"><label>Détails du CC</label><textarea data-ccnote-id="${esc(ccEvt.id)}" rows="2" placeholder="Modalités, durée, barème…" style="${TA_STYLE}">${esc(ccEvt.n || "")}</textarea></div>
   </div>` : "";
   const docBody = `<div class="doc-layout"><article class="prose" id="doc">${resolveHtml(s.contenu)}</article><aside class="toc" id="toc"></aside></div>`;

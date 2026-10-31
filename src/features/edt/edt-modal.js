@@ -4,8 +4,8 @@ import { C, D, M } from "../../core/services/app-data.js";
 import { loadData } from "../../core/services/data-loader.js";
 import { todayKey } from "../../core/services/store.js";
 import { $, $$, esc } from "../../core/utils/dom.js";
-import { ccFieldsHtml, ccFormValues, matiereFromCCLabel, wireCCFields } from "../calendar/cc-modal.js";
-import { saveCCEvent, saveCCWithEpreuve } from "../calendar/cc.service.js";
+import { placeCC, unplaceCC } from "../calendar/cc.service.js";
+import { listEpreuves } from "../notes/grading.utils.js";
 import { saveEdtEvent } from "./edt.service.js";
 import { edtDefaultType, edtTypeIds } from "../settings/settings.js";
 import { saveSeance } from "../seances/seances.service.js";
@@ -15,14 +15,21 @@ import { routerState } from "../../routing/router.store.js";
 // L'échéance CC d'un créneau : uniquement celle reliée par `edtId` (aucune adoption d'une échéance « qui ressemble »).
 const ccOfSlot = (slot) => (slot.id && D.cal.evenements.find((x) => x.edtId === slot.id)) || null;
 
+// Épreuves de la matière qu'on peut poser sur ce créneau : celles qui n'ont pas de créneau, plus celle déjà posée ici.
+function epreuveOptions(mid, current, selfId) {
+  const taken = new Set([...D.cal.evenements, ...(D.cal.sansDate || [])].filter((x) => x.matiere === mid && x.epreuve && x.edtId && x.id !== selfId).map((x) => x.epreuve));
+  const free = listEpreuves(M(mid)?.grading).filter((p) => !taken.has(p.id));
+  if (!mid) return `<option value="">Choisis d'abord la matière</option>`;
+  if (!free.length) return `<option value="">Aucune épreuve libre : crée-la dans Notes &amp; CC</option>`;
+  return `<option value="">Choisis une épreuve</option>` + free.map((p) => `<option value="${esc(p.id)}" ${p.id === current ? "selected" : ""}>${esc(p.label)}${p.second ? " (2e chance)" : ""}</option>`).join("");
+}
+
 // Formulaire unique pour ajouter OU modifier un créneau à la main (bouton "+" du header, ou
 // crayon sur une carte de la grille) — remplace l'ancien sélecteur "changer le type" isolé.
 function edtEventForm(e) {
   const isNew = !e;
   const v = e || { id: "", d: todayKey(), s: "08:00", e: "10:00", t: edtDefaultType(), m: "", r: "", p: "", g: "", n: "", cc: false, allday: false, cancelled: false };
   const linked = ccOfSlot(v);
-  // Le CC de ce créneau : ses champs (épreuve, titre, poids, « Sur », type) viennent de l'échéance reliée, sinon du créneau.
-  const ccVals = ccFormValues(linked, { matiere: v.m || matiereFromCCLabel(v.n)?.id || "", date: v.d, titre: v.n || "", edtId: v.id });
   return `${linked ? `<div class="row" style="margin-bottom:12px"><a class="btn sm ghost" href="#/cal">${icon("cal")}Voir dans le calendrier</a></div>` : ""}
   <form data-a="saveedt">
     <input type="hidden" name="id" value="${esc(v.id)}">
@@ -38,7 +45,8 @@ function edtEventForm(e) {
     </div>
     <label class="row small" style="gap:6px;margin-top:10px"><input type="checkbox" name="cancelled" ${v.cancelled ? "checked" : ""}> Cours annulé <span class="tiny muted">(reste affiché, barré, et ne compte plus)</span></label>
     <label class="row small" style="gap:6px;margin-top:10px"><input type="checkbox" name="cc" ${v.cc ? "checked" : ""}> Contrôle continu pendant ce créneau</label>
-    <div id="edtCC" ${v.cc ? "" : "hidden"} style="margin-top:10px">${ccFieldsHtml(ccVals)}</div>
+    <div id="edtCC" ${v.cc ? "" : "hidden"} style="margin-top:10px"><div class="field"><label>Épreuve de Notes &amp; CC</label><select name="epreuve">${epreuveOptions(v.m, linked?.epreuve, linked?.id)}</select>
+      <p class="tiny muted" style="margin:6px 0 0">Le CC se crée dans Notes &amp; CC. Ici tu lui donnes seulement sa date : celle de ce créneau.</p></div></div>
     <div class="field" style="margin-top:10px"><label>Note</label><input type="text" name="n" value="${esc(v.n || "")}" placeholder="intitulé affiché sous le créneau, ou détails du CC"></div>
     <div class="row" style="margin-top:12px">
       <button class="btn pri" type="submit">${icon("check")}${isNew ? "Ajouter" : "Enregistrer"}</button>
@@ -64,12 +72,12 @@ export function openEdtModal(e) {
   document.addEventListener("keydown", edtModalEsc);
   document.body.appendChild(backdrop);
   const f = $('form[data-a="saveedt"]', backdrop);
-  // Bloc « Contrôle continu » : visible et obligatoire seulement quand la case est cochée (les champs masqués sont
-  // désactivés, sinon le navigateur bloquerait l'envoi sur un champ invisible).
-  const ccBox = $("#edtCC", f), fields = wireCCFields(ccBox, { mid: () => f.elements.m.value, selfId: ccOfSlot(e || {})?.id });
-  const toggleCC = () => { const on = f.elements.cc.checked; ccBox.hidden = !on; $$("input,select", ccBox).forEach((x) => { x.disabled = !on; }); };
+  // Bloc « Contrôle continu » : visible et obligatoire seulement quand la case est cochée (le champ masqué est
+  // désactivé, sinon le navigateur bloquerait l'envoi sur un champ invisible).
+  const ccBox = $("#edtCC", f), epSel = f.elements.epreuve, linkedNow = ccOfSlot(e || {});
+  const toggleCC = () => { const on = f.elements.cc.checked; ccBox.hidden = !on; epSel.disabled = !on; epSel.required = on; };
   f.elements.cc.addEventListener("change", toggleCC);
-  f.elements.m.addEventListener("change", () => fields.refresh());
+  f.elements.m.addEventListener("change", () => { epSel.innerHTML = epreuveOptions(f.elements.m.value, "", linkedNow?.id); });
   toggleCC();
   f.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -77,25 +85,15 @@ export function openEdtModal(e) {
     if (btn.disabled) return; // un seul enregistrement à la fois (double clic)
     btn.disabled = true;
     try {
-      const d = fd.get("d"), m = fd.get("m") || null, wantCC = fd.get("cc") === "on";
-      const before = ccOfSlot({ id: fd.get("id"), m, d, cc: wantCC });
-      if (wantCC) {
-        if (!m) throw new Error("Choisis la matière du CC");
-        if (before?.epreuve && before.matiere !== m) throw new Error(`Ce créneau est relié au CC « ${before.titre} » d'une autre matière : change d'abord ce CC dans le calendrier.`);
-      }
+      const d = fd.get("d"), m = fd.get("m") || null, wantCC = fd.get("cc") === "on", ep = wantCC ? fd.get("epreuve") : "";
+      const before = ccOfSlot({ id: fd.get("id") });
+      if (wantCC && !m) throw new Error("Choisis la matière du CC");
+      if (wantCC && !ep) throw new Error("Choisis l'épreuve de Notes & CC (ou crée-la d'abord là-bas)");
       const id = await saveEdtEvent({ id: fd.get("id") || undefined, d, s: fd.get("s"), e: fd.get("e"), t: fd.get("t"), m, sid: e?.sid, r: fd.get("r"), p: fd.get("p"), g: fd.get("g"), n: fd.get("n"), cc: wantCC, allday: fd.get("allday") === "on", cancelled: fd.get("cancelled") === "on" });
       f.elements.id.value = id; // si la suite échoue, un nouvel envoi met à jour ce créneau au lieu d'en créer un autre
-      if (wantCC) {
-        // Le CC est créé ou mis à jour avec son épreuve du calculateur, relié à ce créneau.
-        await saveCCWithEpreuve({
-          id: before?.id, epreuve: fd.get("epreuve") || undefined, matiere: m, date: d, label: fd.get("titre"), weight: fd.get("poids"), max: fd.get("max"), second: fd.get("type") === "2e",
-          edtId: id, statut: before?.statut || "", detail: before?.detail || "", seances: before?.seances || [],
-        });
-      } else {
-        // Un créneau déplacé répercute sa date sur l'échéance CC liée (edtId), pour que les deux restent coordonnés.
-        const linkedCC = D.cal.evenements.find((x) => x.edtId === id);
-        if (linkedCC && linkedCC.date !== d) await saveCCEvent({ ...linkedCC, date: d });
-      }
+      // Le CC déjà posé ici est détaché s'il change d'épreuve ou si la case est décochée : il perd sa date mais reste dans Notes & CC.
+      if (before && (!wantCC || before.epreuve !== ep || before.matiere !== m)) await unplaceCC(before);
+      if (wantCC) await placeCC({ matiere: m, epreuve: ep, slot: { id, d } }); // la date de l'épreuve = celle du créneau (suit aussi un déplacement)
       // Même chose pour la séance de cours liée (lien explicite e.sid, plus besoin de deviner par
       // date+type+matière) : sans ça elle reste sur l'ancienne date, se détache du créneau dans
       // l'EDT (qui propose alors de "recréer" un cours) et continue de s'afficher à l'ancienne

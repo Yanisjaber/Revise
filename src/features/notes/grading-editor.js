@@ -1,7 +1,8 @@
 // Éditeur du calcul de la note d'une matière (pop-up de la page Notes & CC, et formulaire « matière » dans Compte).
 // Produit la configuration lue par features/notes/grades.js (colonne `grading`).
+import { C, D } from "../../core/services/app-data.js";
 import { $, $$, esc } from "../../core/utils/dom.js";
-import { fmt1 } from "../../core/utils/format.js";
+import { fmt1, fmtDate } from "../../core/utils/format.js";
 import { secondAt, shareText } from "./grades.js";
 import { MAX_LABEL, newEpreuveId, sane, saneWeight } from "./grading.utils.js";
 
@@ -11,7 +12,7 @@ const MAX_PARTS = 8;      // saisies dont on fait la moyenne pour une épreuve
 // Une ligne par épreuve : nom · poids · note sur · case « 2e chance » · retirer.
 // La 2e chance est la ligne dont la case est cochée (une seule) : à 0 % elle est facultative,
 // avec un pourcentage elle compte aussi dans la note.
-function rowHtml(it, second = false) {
+function rowHtml(it, second = false, mid = "") {
   const n = !second && it.parts && it.parts.length > 1 ? it.parts.length : 1;
   return `<div class="gr-row" data-item="${esc(JSON.stringify(it))}" style="margin-bottom:8px">
     <button type="button" class="gr-grip" aria-label="Déplacer l'épreuve : glisser, ou flèches haut et bas" title="Glisser pour déplacer">⋮⋮</button>
@@ -24,9 +25,34 @@ function rowHtml(it, second = false) {
       <button type="button" class="btn sm ghost" data-gr="del" aria-label="Retirer cette épreuve">✕</button>
     </div>
     <div class="gr-adv tiny muted" ${n > 1 ? "" : "hidden"} style="margin:6px 0 0 2px">Cette épreuve est la moyenne de <input type="number" class="gr-n" min="1" max="${MAX_PARTS}" step="1" value="${n}" style="width:64px;display:inline-block;padding:4px 8px" aria-label="Nombre de notes dont on fait la moyenne"> notes</div>
+    ${dateHtml(mid, it)}
+    ${progHtml(mid, it.seances)}
     </div>
   </div>`;
 }
+
+// Date du CC de cette épreuve (elle vient d'un créneau de l'emploi du temps) et bouton pour la dissocier : l'épreuve reste, sans date.
+function dateHtml(mid, it) {
+  const ev = it.id && D.cal.evenements.find((x) => x.matiere === mid && x.epreuve === it.id);
+  if (!ev) return "";
+  return `<div class="gr-date tiny muted row" style="margin:6px 0 0 2px;gap:8px">Date : ${esc(fmtDate(ev.date))}<button type="button" class="btn sm ghost" data-a="unlinkcc" data-id="${esc(ev.id)}" title="Le CC reste, sans date">Dissocier la date</button></div>`;
+}
+
+// « Séances au programme » de l'épreuve (CM/TD/TP cochés) : elles servent au score de préparation du CC.
+// Rien à afficher tant que la matière n'a aucune séance (nouvelle matière, nouvelle épreuve non enregistrée).
+function progHtml(mid, selected) {
+  const list = (C(mid)?.seances) || [];
+  if (!list.length) return "";
+  const sel = new Set(selected || []), groups = {};
+  list.forEach((s) => (groups[s.type] || (groups[s.type] = [])).push(s));
+  return `<details class="gr-prog tiny" style="margin:6px 0 0 2px" ${sel.size ? "open" : ""}><summary class="muted">Séances au programme <span>(score de préparation)</span></summary>
+    ${Object.entries(groups).map(([type, l]) => `<div class="muted" style="margin:8px 0 4px;text-transform:uppercase;letter-spacing:.04em">${esc(type)}</div>
+    <div class="row" style="gap:10px;flex-wrap:wrap">${l.map((x) => `<label class="row small" style="gap:5px;min-width:0"><input type="checkbox" class="gr-seance" value="${esc(x.id)}" ${sel.has(x.id) ? "checked" : ""}>${esc(x.type)} ${x.numero}</label>`).join("")}</div>`).join("")}
+  </details>`;
+}
+
+// Séances déjà au programme : celles de l'épreuve, sinon (anciennes données) celles de son échéance dans le calendrier.
+const programmeOf = (mid, it) => it.seances || [...D.cal.evenements, ...(D.cal.sansDate || [])].find((x) => x.matiere === mid && x.epreuve === it.id)?.seances || [];
 
 const BLANK = { label: "", weight: "", max: 20 };
 
@@ -34,8 +60,9 @@ const BLANK = { label: "", weight: "", max: 20 };
 export function gradingEditorHtml(m, { bare = false, title = "Calcul de la note (page Notes &amp; CC)" } = {}) {
   const g = m && m.grading, items = (g && g.items) || [], sec = (g && g.second) || null;
   // Les lignes suivent l'ordre enregistré, la 2e chance comprise.
-  const rows = items.map((it) => rowHtml(it));
-  if (sec) rows.splice(secondAt({ items, second: sec }), 0, rowHtml({ ...sec, weight: sec.required ? sec.weight : "" }, true));
+  const mid = (m && m.id) || "";
+  const rows = items.map((it) => rowHtml({ ...it, seances: programmeOf(mid, it) }, false, mid));
+  if (sec) rows.splice(secondAt({ items, second: sec }), 0, rowHtml({ ...sec, weight: sec.required ? sec.weight : "", seances: programmeOf(mid, sec) }, true, mid));
   return `<details class="gr-ed${bare ? " gr-bare" : ""}" ${bare ? "open" : ""} style="margin-top:10px"><summary ${bare ? "hidden" : ""}>${title}</summary>
     <div class="row" style="margin:12px 0 10px"><button type="button" class="btn sm" data-gr="add">+ Ajouter une épreuve</button></div>
     <div class="gr-grid gr-head tiny muted" style="margin-bottom:6px"><span>Épreuve</span><span>% de la note</span><span>Sur</span><span></span><span></span></div>
@@ -76,7 +103,7 @@ export function bindGradingEditor(form) {
     if (!b || b.disabled) return;
     if (b.dataset.gr === "add") {
       if ($$(".gr-row", box).length >= MAX_ROWS) return;
-      box.insertAdjacentHTML("beforeend", rowHtml(BLANK));
+      box.insertAdjacentHTML("beforeend", rowHtml(BLANK, false, form.dataset.m || $('[name="id"]', form)?.value || ""));
       $$(".gr-label", box).pop().focus();
     } else if (b.dataset.gr === "del") b.closest(".gr-row").remove();
     refresh();
@@ -183,6 +210,8 @@ export function readGradingEditor(form) {
   const taken = new Set(); // identifiants déjà donnés à une ligne de ce formulaire
   const idOf = (orig, base) => { const id = orig.id && !taken.has(orig.id) ? orig.id : newEpreuveId(base, used); taken.add(id); return id; };
 
+  // Séances cochées d'une ligne ; si la ligne n'a pas de sélecteur (matière sans séance), on garde ce qui était enregistré.
+  const progOf = (r, orig) => ($(".gr-prog", r) ? $$(".gr-seance:checked", r).map((c) => c.value) : orig.seances);
   const items = [];
   let second = null;
   for (const { r, orig } of rows) {
@@ -196,12 +225,14 @@ export function readGradingEditor(form) {
       second = { id: idOf(orig, "sc"), label, pos: items.length }; // pos : nombre d'épreuves placées avant elle
       if (sane(weight)) { second.required = true; second.weight = weight; }
       if (max !== 20) second.max = max;
+      const sp = progOf(r, orig); if (sp) second.seances = sp;
       continue;
     }
     if (!saneWeight(weight)) throw new Error(`Poids manquant ou invalide pour « ${label} »`);
     const id = idOf(orig, "e");
     const it = { id, label, weight };
     if (max !== 20) it.max = max;
+    const sp = progOf(r, orig); if (sp) it.seances = sp;
     const n = Math.min(MAX_PARTS, Math.max(1, parseInt($(".gr-n", r).value, 10) || 1));
     if (n > 1) {
       const old = orig.parts || [];
