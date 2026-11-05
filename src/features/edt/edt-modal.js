@@ -88,6 +88,8 @@ export function openEdtModal(e) {
       const d = fd.get("d"), m = fd.get("m") || null, wantCC = fd.get("cc") === "on", ep = wantCC ? fd.get("epreuve") : "";
       const before = ccOfSlot({ id: fd.get("id") });
       if (wantCC && !m) throw new Error("Choisis la matière du CC");
+      // Le cours relié appartient à la matière du créneau : changer de matière le laisserait sans créneau.
+      if (e?.sid && e.m && m !== e.m) throw new Error("Ce créneau porte un cours : supprime d'abord le cours pour changer de matière");
       if (wantCC && !ep) throw new Error("Choisis l'épreuve de Notes & CC (ou crée-la d'abord là-bas)");
       const id = await saveEdtEvent({ id: fd.get("id") || undefined, d, s: fd.get("s"), e: fd.get("e"), t: fd.get("t"), m, sid: e?.sid, r: fd.get("r"), p: fd.get("p"), g: fd.get("g"), n: fd.get("n"), cc: wantCC, allday: fd.get("allday") === "on", cancelled: fd.get("cancelled") === "on" });
       f.elements.id.value = id; // si la suite échoue, un nouvel envoi met à jour ce créneau au lieu d'en créer un autre

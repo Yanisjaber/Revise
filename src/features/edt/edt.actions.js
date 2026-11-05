@@ -6,7 +6,7 @@ import { plural } from "../../core/utils/format.js";
 import { closeEdtModal, openEdtModal } from "./edt-modal.js";
 import { deleteEdtEvent, saveEdtEvent } from "./edt.service.js";
 import { edtViewState } from "./edt.store.js";
-import { mondayOf, toMin } from "./edt.utils.js";
+import { mondayOf, seanceFor, toMin } from "./edt.utils.js";
 import { edtToSeanceType } from "../settings/settings.js";
 import { analyzeIcs, commitIcsImport } from "./ics-import.service.js";
 import { createSeance } from "../seances/seances.service.js";
@@ -22,6 +22,9 @@ export const edtActions = {
     addedt: async (t, e) => { openEdtModal(null); },
     canceledt: async (t, e) => { closeEdtModal(); },
     deledt: async (t, e) => {
+      // Un cours n'existe pas sans son créneau : on refuse de supprimer un créneau qui en porte un.
+      const ev = D.edt.events.find((x) => x.id === t.dataset.id), sc = ev && seanceFor(ev);
+      if (sc) return toast(`Ce créneau porte le cours « ${sc.titre || sc.type + " " + sc.numero} » : supprime d'abord le cours.`);
       if (await appConfirm("Supprimer ce créneau ?")) {
         try { await deleteEdtEvent(t.dataset.id); toast("Créneau supprimé"); closeEdtModal(); await loadData(); rerender(); }
         catch (err) { toast("Erreur : " + err.message); }
