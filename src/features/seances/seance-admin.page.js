@@ -7,7 +7,7 @@ import { fmtDate } from "../../core/utils/format.js";
 import { bindImageInsert, fileFieldHtml, imageInsertHtml } from "../files/files.components.js";
 import { readFileField, removeFile } from "../files/files.service.js";
 import { seanceTypes } from "../settings/settings.js";
-import { saveSeance } from "./seances.service.js";
+import { createSeance, saveSeance } from "./seances.service.js";
 import { rerender } from "../../routing/navigation.js";
 
 export function mmSeances(mid) {
@@ -30,7 +30,9 @@ function bindSeanceForm(mid) {
       if (!id) return toast("Identifiant requis");
       try {
         const pdf = await readFileField(fd, "pdf", `${mid}/pdf`);
-        await saveSeance(mid, { id, type: fd.get("type"), numero: +fd.get("numero") || 1, date: fd.get("date") || null, titre: fd.get("titre"), resume: fd.get("resume"), contenu: fd.get("contenu"), pdf: pdf.value });
+        // Champ id visible = nouvelle séance : insert, pour ne jamais écraser une séance existante.
+        const isNew = !!e.target.querySelector('input[type="text"][name="id"]');
+        await (isNew ? createSeance : saveSeance)(mid, { id, type: fd.get("type"), numero: +fd.get("numero") || 1, date: fd.get("date") || null, titre: fd.get("titre"), resume: fd.get("resume"), contenu: fd.get("contenu"), pdf: pdf.value });
         await removeFile(pdf.old);
         toast("Séance enregistrée");
         await loadData();

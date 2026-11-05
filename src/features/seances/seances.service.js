@@ -17,6 +17,16 @@ export async function saveSeance(mid, s) {
   if (error) throw error;
 }
 
+// Création d'une séance NEUVE : insert (pas upsert). Si l'identifiant existe déjà, Supabase renvoie
+// une erreur au lieu d'écraser en silence la séance existante (et de lui voler ses documents).
+export async function createSeance(mid, s) {
+  const { error } = await client().from("seances").insert({
+    user_id: sync.user.id, mid, id: s.id, type: s.type, numero: s.numero || 1, date: s.date || null,
+    titre: s.titre || "", resume: s.resume || "", contenu: s.contenu || "", pdf_url: s.pdf || null,
+  });
+  if (error) throw error.code === "23505" ? new Error(`l'identifiant « ${s.id} » est déjà pris par une autre séance`) : error;
+}
+
 export async function deleteSeance(mid, id) {
   // Les documents déposés sur la séance (fichier + ligne seance_docs) sont supprimés avec elle :
   // la clé étrangère seance_docs_sid_fkey bloquait sinon la suppression d'une séance qui en avait.

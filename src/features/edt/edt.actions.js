@@ -9,7 +9,7 @@ import { edtViewState } from "./edt.store.js";
 import { mondayOf, toMin } from "./edt.utils.js";
 import { edtToSeanceType } from "../settings/settings.js";
 import { analyzeIcs, commitIcsImport } from "./ics-import.service.js";
-import { saveSeance } from "../seances/seances.service.js";
+import { createSeance } from "../seances/seances.service.js";
 import { refreshShell, rerender } from "../../routing/navigation.js";
 
 // Actions déclenchées par les attributs data-a (clic, change, input) pour cette fonctionnalité.
@@ -42,8 +42,12 @@ export const edtActions = {
         if (!s) {
           const sameType = C(mid).seances.filter((x) => x.type === want);
           const numero = sameType.length ? Math.max(...sameType.map((x) => x.numero)) + 1 : 1;
-          const id = `${want.toLowerCase()}-${numero}`;
-          await saveSeance(mid, { id, type: want, numero, date: d, titre: `${want} ${numero}`, resume: "", contenu: "" });
+          // L'id "cm-6" peut déjà exister (séance renumérotée ou créée à la main) : avant, l'upsert
+          // écrasait alors cette séance (contenu vidé, documents récupérés). On prend un id libre.
+          const taken = new Set(C(mid).seances.map((x) => x.id));
+          let id = `${want.toLowerCase()}-${numero}`;
+          if (taken.has(id)) id = `${id}-${Date.now().toString(36)}`;
+          await createSeance(mid, { id, type: want, numero, date: d, titre: `${want} ${numero}`, resume: "", contenu: "" });
           s = { id };
         }
         // Pose le lien explicite EDT → séance sur le créneau d'origine, pour que seanceFor()
