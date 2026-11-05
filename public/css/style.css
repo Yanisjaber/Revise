@@ -388,6 +388,9 @@ span.flatpickr-weekday{color:var(--muted);font-weight:600;font-size:.74rem;text-
 .edt-gh{padding:0 0 8px;min-width:0}
 .edt-gh h3{font-size:.86rem;margin:0 0 4px;text-transform:capitalize;white-space:nowrap;color:var(--text)}
 .edt-gh.today h3{color:var(--navy)}
+.edt-allday{border:0;cursor:pointer;font:inherit;font-size:.78rem;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.edt-allday svg{width:12px;height:12px;opacity:.7;flex:none}
+.edt-allday:hover{filter:brightness(.95)} .edt-allday:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
 .edt-axis{position:sticky;left:0;z-index:3;background:var(--bg);width:44px}
 .edt-axis span{position:absolute;transform:translateY(-50%);right:8px;font-size:.68rem;color:var(--muted);white-space:nowrap}
 .edt-gcol{position:relative;min-width:0;border-left:1px solid var(--line);border-radius:0 10px 10px 0;background-color:var(--surface2);

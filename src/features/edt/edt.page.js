@@ -6,7 +6,7 @@ import { plural } from "../../core/utils/format.js";
 import { SET } from "../settings/settings.js";
 import { edtCard } from "./edt.components.js";
 import { edtViewState } from "./edt.store.js";
-import { EDT_HOUR_PX, edtLabel, edtOf, mondayOf, toMin } from "./edt.utils.js";
+import { EDT_HOUR_PX, edtLabel, edtName, edtOf, mondayOf, toMin } from "./edt.utils.js";
 
 export function edt() {
   if (!D.edt.events.length) {
@@ -60,7 +60,7 @@ export function edt() {
     return `<div class="edt-gcol${iso === today ? " today" : ""}" style="height:${gridH}px">${empty}${evHtml}${nowLine}</div>`;
   };
 
-  const heads = byDay.map(({ d, iso, all }) => `<div class="edt-gh${iso === today ? " today" : ""}"><h3>${fd.format(d)}</h3>${all.map((e) => `<span class="chip gr">${esc(edtLabel(e))}</span>`).join("")}</div>`).join("");
+  const heads = byDay.map(({ d, iso, all }) => `<div class="edt-gh${iso === today ? " today" : ""}"><h3>${fd.format(d)}</h3>${all.map((e) => `<button type="button" class="chip ${e.cancelled ? "ko" : "gr"} edt-allday" data-a="edtedit" data-id="${esc(e.id)}" title="Modifier ce créneau">${esc(e.m ? edtName(e) + " · " + edtLabel(e) : edtLabel(e))}${e.cancelled ? " · annulé" : ""}${icon("edit")}</button>`).join("")}</div>`).join("");
   const cols = byDay.map(dayCol).join("");
   const axisLabels = hours.map((h) => `<span style="top:${((h - dayStart) / (dayEnd - dayStart)) * 100}%">${h} h</span>`).join("");
 
