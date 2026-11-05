@@ -1,8 +1,9 @@
 import { icon } from "../../core/components/icons.js";
-import { C, M } from "../../core/services/app-data.js";
+import { C, D, M } from "../../core/services/app-data.js";
 import { esc } from "../../core/utils/dom.js";
 import { fmtLong } from "../../core/utils/format.js";
 import { edtToSeanceType } from "../settings/settings.js";
+import { seanceFor } from "./edt.utils.js";
 
 // Un créneau d'EDT sans séance correspondante n'en crée plus une automatiquement au simple clic —
 // juste regarder un créneau pour voir de quoi il s'agit ne doit jamais laisser une séance vide
@@ -11,6 +12,11 @@ import { edtToSeanceType } from "../settings/settings.js";
 export function edtDraft(q) {
   const m = M(q.m), want = edtToSeanceType(q.t);
   if (!m || !want || !q.d) return { html: `<div class="empty">Créneau introuvable.</div>` };
+  // Créneau déjà lié à une séance (ex. vieux lien gardé dans l'historique) : on ouvre directement
+  // le cours au lieu de proposer d'en créer un autre.
+  const ev = q.id && D.edt.events.find((x) => x.id === q.id);
+  const sc = ev && seanceFor(ev);
+  if (sc) { location.replace(`#/c/${q.m}/${sc.id}`); return { html: "" }; }
   const sameType = C(q.m).seances.filter((x) => x.type === want);
   const numero = sameType.length ? Math.max(...sameType.map((x) => x.numero)) + 1 : 1;
   const meta = [q.r, q.p, q.g].filter(Boolean).join(" · ");

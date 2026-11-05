@@ -54,7 +54,9 @@ export const edtActions = {
         // n'ait plus besoin de deviner par date+type+matière.
         if (edtEv && edtEv.sid !== s.id) await saveEdtEvent({ ...edtEv, sid: s.id });
         await loadData();
-        location.hash = `#/c/${mid}/${s.id}`;
+        // replace (pas location.hash) : la page du cours REMPLACE l'écran « Créer CM » dans
+        // l'historique, sinon « Retour » y revenait et proposait de créer le CM suivant.
+        location.replace(`#/c/${mid}/${s.id}`);
       } catch (err) { toast("Erreur : " + err.message); }
     },
     confirmics: async (t, e) => { if (!edtViewState.icsPreview) return; toast("Import en cours…"); try { const r = await commitIcsImport(edtViewState.icsPreview, D.matieres); edtViewState.icsPreview = null; toast(`Importé : ${plural(r.matieresCreees, "matière créée", "matières créées")}, ${plural(r.evenements, "créneau")}`); await loadData(); refreshShell(); } catch (err) { toast("Erreur : " + err.message); } },
