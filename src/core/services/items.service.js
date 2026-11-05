@@ -11,8 +11,15 @@ const KIND_FIELDS = {
 
 export async function loadItems(kind) {
   if (!sync.client || !sync.user) return [];
-  const { data, error } = await sync.client.from("sujets").select("*").eq("kind", kind);
-  if (error) { console.warn("loadItems", kind, error); return []; }
+  // Supabase renvoie au plus 1000 lignes par requête : on lit par pages, triées par id
+  // pour que la pagination soit stable.
+  const PAGE = 1000, data = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data: page, error } = await sync.client.from("sujets").select("*").eq("kind", kind).order("id").range(from, from + PAGE - 1);
+    if (error) { console.warn("loadItems", kind, error); return []; }
+    data.push(...page);
+    if (page.length < PAGE) break;
+  }
   return data.map((r) => ({
     id: r.id, matiere: r.mid, seance: r.sid,
     type: r.type, q: r.q, choix: r.choix || [], rep: r.rep || [], expl: r.expl, niveau: r.niveau,
